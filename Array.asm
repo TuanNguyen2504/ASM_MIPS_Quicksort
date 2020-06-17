@@ -1,6 +1,6 @@
 .data
 	#mang so nguyen dong 4 byte
-	arr: .space 4
+	arr: .space 1024
 	inputNumArrNotifi: .asciiz "Nhap so luong phan tu cua mang: "
 	inputArrNotifi: .asciiz "Nhap 1 phan tu: "
 	#so luong phan tu
@@ -153,7 +153,8 @@
 	# --- 1. Xuat mang so ---
 	outputArray:
 		#Luu thanh ghi $ra vao stack
-		sw $ra, -4($sp)
+		addi $sp, $sp, -4
+		sw $ra, 0($sp)
 		#Xuat thong bao mang:
 		li $v0, 4
 		la $a0, outputArrNotifi
@@ -176,7 +177,8 @@
 			j loopOutputArr
 		doneOuputArr:
 			#Phuc hoi thanh ghi ra
-			lw $ra, -4($sp)
+			lw $ra, 0($sp)
+			addi $sp, $sp, 4
 			jr $ra
 		
 	# --- 2. Tinh tong ---
