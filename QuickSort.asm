@@ -1,19 +1,23 @@
-	.data
+.data
 #Duong dan den file input
-inputFilePath: .asciiz "D:/ASM/Project 2 - MIPS/input.txt"
+inputFilePath: .asciiz "D:/BACHELOR OF IT/SEMETER FOUR/KTMT&HOPNGU/input.txt"
 #Duong dan den file output
-outputFilePath: .asciiz "D:/ASM/Project 2 - MIPS/output.txt"
+outputFilePath: .asciiz "D:/BACHELOR OF IT/SEMETER FOUR/KTMT&HOPNGU/output.txt"
 #cau xuat thong bao (xoa khi hoan thanh)
 outputArrNotifi: .asciiz "------ Output Array: "
 space: .asciiz " "
 #so phan tu cua mang so
 n: .word 0
 #luu du lieu input tu file
-#n max = 1000 -> 3 char
+#n max = 1000 -> 4 char
 #1 word 4 byte -> max = 10 char * 1000 (word) = 10000 char
 #1 char endline, ky tu space max = 998 char, 1 char eof
-#max char cua fileData = 3 + 10000 + 10000 = 200003
-fileData: .space 20004
+#max char cua fileData = 4 + 10000 + 1000 = 11004
+fileData: .space 11004
+#buffer trong ham itoa
+buffer:		.space 32
+#buffer luu chuoi de ghi file
+bufferOutput: .space 11000
 #mang luu cac so chuyen tu input tren (Max = 1000 ptu = 4000 word)
 arrNum: .space 4000
 #Luu so hien tai dang token
@@ -53,6 +57,15 @@ main:
 	#xuat mang
 	jal outputArray
 	
+	jal arrToStr
+
+	# Chua ro cho nay comment nhu the nao
+	la $a1, bufferOutput
+	
+	# Ghi ra file
+	jal writeFile
+	
+	
 	#Thoat chuong trinh
 	j exit
 	
@@ -91,7 +104,8 @@ printSpace:
 		la $a0, space
 		syscall
 		jr $ra	
-			
+		
+		
 # -------- Ham chuyen string to integer  -------- 
 atoi:
 	#$a0 luu dia chi ky tu hien tai, v0 luu ket qua
@@ -109,7 +123,8 @@ atoi:
 		blt $t1, 48, endLoop
 		bgt $t1, 57, endLoop
 		#result $v0 = $v0*10 + $t1 - 48
-		mul $v0, $v0, 10
+		li $t2, 10
+		mul $v0, $v0, $t2
 		add $v0, $v0, $t1
 		sub $v0, $v0, 48
 		# den ky tu ke tiep
@@ -134,7 +149,7 @@ readFile:
 	li $v0, 14		#doc file = 14
 	move $a0, $s0		#file descriptor
 	la $a1, fileData  	#luu thong tin vao data
-	la $a2, 20004
+	la $a2, 11004
 	syscall
 	jr $ra
 
@@ -146,6 +161,29 @@ closeFile:
     syscall
     jr $ra
     
+
+
+# ------- Ham ghi file  -------- 
+writeFile:
+	#mo file ghi voi syscall 13
+	li $v0, 13
+	la $a0, outputFilePath #Lay duong dan file
+	li $a1, 1 	#flag = 0 -> read file, 1 write
+	syscall
+	move $s1, $v0
+
+	#ghi file
+	li $v0, 15
+	move $a0, $s1
+	la $a1, bufferOutput
+	la $a2, 11000
+	syscall
+	
+	#dong file
+	li $v0, 16
+	move $a0, $s1
+	syscall
+
 # -------- Ham token input thanh mang so nguyen -------- 
 tokenData:
 	addi $sp, $sp, -4
@@ -214,7 +252,76 @@ strToArr:
 		lw $ra, 0($sp)
 		add $sp, $sp, 4
 		jr $ra
-		
+
+
+#  -------- Ham chuyen array number sang string -------- 
+arrToStr:
+	addi $sp, $sp, -4
+	sw $ra, 0($sp)
+	#khai bao vong lap
+	li $t6, 1
+	lw $s1, n
+	la $s2, bufferOutput
+	li $t8, ' '
+	loopConvert:
+		bgt $t6, $s1, endToStr	#if i > N then done
+		# Lam gi do cho nay
+		jal itoa
+	looptoWrite:
+		#lay ky tu hien tai va kiem tra co thuoc '0'->'9'
+		lb $t7, ($v0)
+		blt $t7, 48, writeSpace
+		bgt $t7, 57, writeSpace
+	writeByte:
+		# Ghi du lieu la cac ky tu so
+		sb $v0,($s2)
+		addi $s2, $s2, 1
+		addi $v0, $v0, 1
+		j looptoWrite
+	writeSpace:
+		# Ghi dau cach giua cac con so
+		addi $v0, $v0, 1
+		sb $t8, ($s2)
+		addi $s2, $s2, 1
+		addi $t6, $t6, 1
+		j loopConvert
+	endToStr:
+		lw $ra, 0($sp)
+		add $sp, $sp, 4
+		jr $ra
+	
+
+#  -------- Ham chuyen number sang string --------
+itoa:
+	 	la   $t0, buffer    # load buf
+      add  $t0, $t0, 30   # seek the end
+      sb   $0, 1($t0)      # null-terminated str
+      li   $t1, '0'  
+      sb   $t1, ($t0)     # init. with ascii 0
+      slt  $t2, $a0, $0   # keep the sign
+      li   $t3, 10        # preload 10
+      beq  $a0, $0, iend  # end if 0
+      beq $t2, 0, loop
+      neg  $a0, $a0
+loop:
+      div  $a0, $t3       # a /= 10
+      mflo $a0
+      mfhi $t4            # get remainder
+      add  $t4, $t4, $t1  # convert to ASCII digit
+      sb   $t4, ($t0)     # store it
+      sub  $t0, $t0, 1    # dec. buf ptr
+      bne  $a0, $0, loop  # if not zero, loop
+      addi $t0, $t0, 1    # adjust buf ptr
+iend:
+      beq  $t2, $0, nolz  # was < 0?
+      addi $t0, $t0, -1
+      li   $t1, '-'
+      sb   $t1, ($t0)
+nolz:
+      move $v0, $t0     # return the addr.
+      jr   $ra           # of the string
+      
+			
 # ===============================
 # ========== QuickSort ========== 
 # ===============================
