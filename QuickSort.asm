@@ -1,6 +1,8 @@
 	.data
+#thong bao thanh cong 
+succeedMess: .asciiz "---------- SUCCESS :\"> ----------\n"
 #Duong dan den file input
-inputFilePath: .asciiz "C:/Users/Admin/Desktop/temp_MIPS/ASM_MIPS_Quicksort-master/input_2.txt"
+inputFilePath: .asciiz "C:/Users/Admin/Desktop/temp_MIPS/ASM_MIPS_Quicksort-master/input.txt"
 #Duong dan den file output
 outputFilePath: .asciiz "C:/Users/Admin/Desktop/temp_MIPS/ASM_MIPS_Quicksort-master/output.txt"
 #so phan tu cua mang so
@@ -15,9 +17,11 @@ fileData: .space 11004
 buffer: .space 32
 #buffer luu chuoi de ghi file
 bufferOutput: .space 11000
+#so byte thuc cua bufferOutput
+nByteBuff: .word 0
 #mang luu cac so chuyen tu input tren (Max = 1000 ptu = 4000 word)
 arrNum: .space 4000
-#Luu so hien tai dang token
+#luu so hien tai dang token
 currentNum: .asciiz ""
 
 	.globl main
@@ -47,8 +51,8 @@ main:
 	#chuyen mang ket qua sau quicksort thanh string
 	jal arrToStr
 	#ghi ket qua ra file va dong file	
-	jal writeFile		
-	#Thoat chuong trinh
+	jal writeFile	
+	#thoat chuong trinh
 	j exit
 	
 # -------- Ham chuyen string to integer  -------- 
@@ -93,7 +97,7 @@ readFile:
 	li $v0, 14		#doc file = 14
 	move $a0, $s0		#file descriptor
 	la $a1, fileData  	#luu thong tin vao data
-	la $a2, 11004
+	li $a2, 11004
 	syscall
 	#dong file
 	li $v0, 16
@@ -173,7 +177,7 @@ strToArr:
 #  -------- Ham chuyen number sang string --------
 itoa:
 	 	la   $t0, buffer    #load buffer
-      add  $t0, $t0, 30   #nhay den cuoi
+    	add  $t0, $t0, 30   #nhay den cuoi
       sb   $0, 1($t0)
       li   $t1, '0'  
       sb   $t1, ($t0)
@@ -203,18 +207,19 @@ returnItoa:
 #  -------- Ham chuyen array number sang string -------- 
 arrToStr:
 	addi $sp, $sp, -4
-	sw $ra, ($sp)
+	sw $ra, ($sp)	
+	li $t6, 0	#count byte of buffer	
 	la $s0, arrNum
 	lw $s1, n
 	la $a1, bufferOutput
 	li $s4, ' '
 	loopConvert:
 		beq $s1, $0, endToStr	#if i = 0 then done
-		subi $s1, $s1, 1
+		addi $s1, $s1, -1
 		lw $a0, ($s0)
 		addi $s0, $s0, 4
 		jal itoa	
-		#luu $v0 vao buffer			
+		#luu $v0 vao buffer		
 		loopDigits:
 			lb $t0, ($v0)
 			#kiem tra $t0 co thuoc '0' -> '9' khong
@@ -223,13 +228,20 @@ arrToStr:
 			#luu ky tu vao buffer
 			sb $t0, 0($a1)
 			addi $v0, $v0, 1
-			addi $a1, $a1, 1		
+			addi $a1, $a1, 1
+			addi $t6, $t6, 1	#count++	
 			j loopDigits			
 		endLoopDigits:
 			sb $s4, 0($a1)		#xuat khoang trang giua cac so
 			addi $a1, $a1, 1
+			addi $t6, $t6, 1	#count++
 			j loopConvert			
 	endToStr:
+		#bo khoang trang cuoi (--count)
+		addi $t6, $t6, -1
+		#luu so byte thuc cua buffer
+		la $t2, nByteBuff
+		sw $t6, ($t2)
 		lw $ra, 0($sp)
 		add $sp, $sp, 4
 		jr $ra
@@ -318,7 +330,8 @@ writeFile:
 	li $v0, 15
 	move $a0, $s1
 	la $a1, bufferOutput
-	la $a2, 11000
+	lw $a3, nByteBuff
+	move $a2, $a3
 	syscall
 	#dong file
 	# $s1 = file descriptor 
@@ -329,6 +342,11 @@ writeFile:
 
 # ---- Ham Thoat chuong trinh
 exit:
+	#xuat thong bao thanh cong
+	li $v0, 4
+	la $a0, succeedMess
+	syscall
+	#ket thuc chuong trinh
 	li $v0, 10
 	syscall
 
