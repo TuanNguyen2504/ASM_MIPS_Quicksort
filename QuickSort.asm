@@ -1,11 +1,8 @@
-.data
+	.data
 #Duong dan den file input
 inputFilePath: .asciiz "C:/Users/Admin/Desktop/temp_MIPS/ASM_MIPS_Quicksort-master/input_2.txt"
 #Duong dan den file output
 outputFilePath: .asciiz "C:/Users/Admin/Desktop/temp_MIPS/ASM_MIPS_Quicksort-master/output.txt"
-#cau xuat thong bao (xoa khi hoan thanh)
-outputArrNotifi: .asciiz "------ Output Array: "
-space: .asciiz " "
 #so phan tu cua mang so
 n: .word 0
 #luu du lieu input tu file
@@ -15,7 +12,7 @@ n: .word 0
 #max char cua fileData = 4 + 10000 + 1000 = 11004
 fileData: .space 11004
 #buffer trong ham itoa
-buffer:		.space 32
+buffer: .space 32
 #buffer luu chuoi de ghi file
 bufferOutput: .space 11000
 #mang luu cac so chuyen tu input tren (Max = 1000 ptu = 4000 word)
@@ -28,23 +25,17 @@ currentNum: .asciiz ""
 	
 # -------- Ham main -------- 
 main:
-	#Doc file va luu du lieu vao fileData
+	#Doc file va luu du lieu vao fileData sau do dong file
 	jal readFile
-	#dong file vua doc
-	jal closeFile
-	
 	#Du lieu luu vao $a1 la tham so dau vao tokenData
-	la $a1, fileData
-	
+	la $a1, fileData	
 	#Token de Lay gia tri n = so luong ptu mang
 	jal tokenData
-	sw $v0, n
-	
+	sw $v0, n	
 	#chuyen data string sang data arr
-	jal strToArr
-	
-	#quicksort
-	la $a0, arrNum	#$a0 = left
+	jal strToArr	
+	#quicksort, $a0 = left
+	la $a0, arrNum	
 	#lay dia chi phan tu cuoi cung (right) = left * (n-1) * 4 (byte)
 	lw $t1, n
 	addi $t1, $t1, -1	#n-1
@@ -52,72 +43,14 @@ main:
 	mult $t1, $t2
 	mflo $t3
 	add $a1, $a0, $t3 #$a1 = right
-#	jal quickSort
-	
-	#xuat mang
-#	jal outputArray
-	
-#	jal arrToStr
-	
-#	li $v0, 4
-#	la $a0, bufferOutput
-#	syscall
-
-	li $v0, 5
-	syscall
-	
-	jal itoa
-	
-	move $a0, $v0
-	li $v0, 4
-	syscall
-	
-	
-#	jal writeFile
-	
-	
-	
-	
+	jal quickSort
+	#chuyen mang ket qua sau quicksort thanh string
+	jal arrToStr
+	#ghi ket qua ra file va dong file	
+	jal writeFile		
 	#Thoat chuong trinh
 	j exit
 	
-# ----------- Ham xuat mang ra console, de kiem tra khi code (xoa khi hoan thanh) -------------
-outputArray:
-		#Luu thanh ghi $ra vao stack
-		addi $sp, $sp, -4
-		sw $ra, 0($sp)
-		#Xuat thong bao mang:
-		li $v0, 4
-		la $a0, outputArrNotifi
-		syscall
-		#gan cac du lieu t0 = n, t1 = i = 1
-		lw $t0, n
-		addi $t1, $0, 1
-		la $a1, arrNum	
-		loopOutputArr:
-			#if i > N
-			bgt $t1, $t0, doneOuputArr
-			#print
-			li $v0, 1		
-			lw $a0,($a1)
-			syscall
-			jal printSpace
-			#tang don vi		
-			addi $a1, $a1, 4		
-			addi $t1, $t1, 1		
-			j loopOutputArr
-		doneOuputArr:
-			#Phuc hoi thanh ghi ra
-			lw $ra, 0($sp)
-			addi $sp, $sp, 4
-			jr $ra
-printSpace:
-		li $v0, 4
-		la $a0, space
-		syscall
-		jr $ra	
-		
-		
 # -------- Ham chuyen string to integer  -------- 
 atoi:
 	#$a0 luu dia chi ky tu hien tai, v0 luu ket qua
@@ -138,7 +71,7 @@ atoi:
 		mul $v0, $v0, 10
 		add $v0, $v0, $t1
 		sub $v0, $v0, 48
-		# den ky tu ke tiep
+		#den ky tu ke tiep
 		addi $t0, $t0, 1
 		#tiep tuc den het chuoi
 		b nextCharacter
@@ -162,15 +95,11 @@ readFile:
 	la $a1, fileData  	#luu thong tin vao data
 	la $a2, 11004
 	syscall
-	jr $ra
-
-#  -------- Ham Close file sau khi doc file --------
-# $s0 = file descriptor 
-closeFile:
+	#dong file
 	li $v0, 16
-    move $a0,$s0  		
-    syscall
-    jr $ra
+   move $a0,$s0  		
+   syscall 
+	jr $ra
     
 # -------- Ham token input thanh mang so nguyen -------- 
 tokenData:
@@ -243,33 +172,33 @@ strToArr:
 
 #  -------- Ham chuyen number sang string --------
 itoa:
-	 	la   $t0, buffer    # load buf
-      add  $t0, $t0, 30   # seek the end
-      sb   $0, 1($t0)     # null-terminated str
+	 	la   $t0, buffer    #load buffer
+      add  $t0, $t0, 30   #nhay den cuoi
+      sb   $0, 1($t0)
       li   $t1, '0'  
-      sb   $t1, ($t0)     # init. with ascii 0
-      slt  $t2, $a0, $0   # keep the sign
-      li   $t3, 10        # preload 10
-      beq  $a0, $0, iend  # end if 0
+      sb   $t1, ($t0)
+      slt  $t2, $a0, $0   #$t2 = 1 (neu so am)
+      li   $t3, 10
+      beq  $a0, $0, endItoa  #dung neu bang 0
       beq $t2, 0, loop
       neg  $a0, $a0
 loop:
-      div  $a0, $t3       # a /= 10
+      div  $a0, $t3       #num /= 10
       mflo $a0
-      mfhi $t4            # get remainder
-      add  $t4, $t4, $t1  # convert to ASCII digit
-      sb   $t4, ($t0)     # store it
-      sub  $t0, $t0, 1    # dec. buf ptr
-      bne  $a0, $0, loop  # if not zero, loop
-      addi $t0, $t0, 1    # adjust buf ptr
-iend:
-      beq  $t2, $0, nolz  # was < 0?
+      mfhi $t4            #$t4 = num % 10
+      add  $t4, $t4, $t1  #$t4 = $t4 + '0'
+      sb   $t4, ($t0)
+      sub  $t0, $t0, 1
+      bne  $a0, $0, loop
+      addi $t0, $t0, 1
+endItoa:
+      beq  $t2, $0, returnItoa  #if negative num = -num
       addi $t0, $t0, -1
       li   $t1, '-'
       sb   $t1, ($t0)
-nolz:
-      move $v0, $t0      # return the addr.
-      jr   $ra           # of the string
+returnItoa:
+      move $v0, $t0      #$v0 = result
+      jr   $ra 
       
 #  -------- Ham chuyen array number sang string -------- 
 arrToStr:
@@ -282,34 +211,28 @@ arrToStr:
 	loopConvert:
 		beq $s1, $0, endToStr	#if i = 0 then done
 		subi $s1, $s1, 1
-#		lw $a0, 0($s0)
-#		addi $s0, $s0, 4
-		jal itoa
-		
-		move $a0, $v0
-		li $v0, 4
-		syscall
-		
-		jal printSpace
-		
-		
-		loopDigits:		#luu $v0 vao buffer
-			lb $t0, ($a0)
-			blt $t0, 48, loopConvert
-			bgt $t0, 57, loopConvert			
-			
+		lw $a0, ($s0)
+		addi $s0, $s0, 4
+		jal itoa	
+		#luu $v0 vao buffer			
+		loopDigits:
+			lb $t0, ($v0)
+			#kiem tra $t0 co thuoc '0' -> '9' khong
+			blt $t0, 48, endLoopDigits
+			bgt $t0, 57, endLoopDigits			
+			#luu ky tu vao buffer
 			sb $t0, 0($a1)
-#			sb $s4, 0($a1)
-			addi $a0, $a0, 1
+			addi $v0, $v0, 1
+			addi $a1, $a1, 1		
+			j loopDigits			
+		endLoopDigits:
+			sb $s4, 0($a1)		#xuat khoang trang giua cac so
 			addi $a1, $a1, 1
-			
-			j loopDigits
+			j loopConvert			
 	endToStr:
 		lw $ra, 0($sp)
 		add $sp, $sp, 4
 		jr $ra
-
-	
 			
 # ===============================
 # ========== QuickSort ========== 
@@ -390,24 +313,23 @@ writeFile:
 	li $a1, 1
 	li $a2, 0
 	syscall
-	move $s1, $v0
-	
+	move $s1, $v0	
 	#ghi file
 	li $v0, 15
 	move $a0, $s1
 	la $a1, bufferOutput
 	la $a2, 11000
 	syscall
-
 	#dong file
-	# $s0 = file descriptor 
+	# $s1 = file descriptor 
 	li $v0, 16
 	move $a0, $s1
-	syscall
-	
+	syscall	
 	jr $ra
 
 # ---- Ham Thoat chuong trinh
 exit:
 	li $v0, 10
 	syscall
+
+#####################################################################
